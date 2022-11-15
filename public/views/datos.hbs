@@ -1,0 +1,32 @@
+<head>
+  <meta charset="UTF-8" />
+  <title></title>
+</head>
+<body>
+  
+        <h3>Lista de Productos</h3>
+      </div>
+      <div>
+        <div>
+          <table >
+            <tr >
+              <th>Nombre</th>
+              <th>Precio</th>
+              <th>Foto</th>
+            </tr>
+            {{#if prod}}
+              {{#each prod}}
+                <tr>
+                  <td>{{this.name}}</td>
+                  <td>{{this.price}}</td>
+                  <td><IMG SRC="{{this.thumbnail}}"></td>
+                </tr>
+              {{/each}}
+            {{else}}
+              <h2>No hay productos</h2>
+            {{/if}}
+          </table>
+        </div>
+
+
+</body>
