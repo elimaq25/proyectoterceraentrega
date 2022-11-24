@@ -1,107 +1,60 @@
-const admin = require('firebase-admin')
-const config= require('./db/segundaentrega-be885-firebase-adminsdk-9bc9r-f095567c03.json')
-const Producto = require('./productoDaos') 
+const { getApp } = require('firebase-admin/app')
+const mongoose = require('mongoose')
+const esquemaCart = require('./modelsMDB/schemaCarrito')
+const Producto = require('./productoDaos')
+const logger = require('../logs/reqLogger')
 
 
 const Productos = new Producto()
 
 class Carrito {
-    constructor() {
-        admin.initializeApp({
-            credential: admin.credential.cert(config),
-            databaseURL: 'https://segundaentrega-be885.firebaseio.com'
-        })
+    async connectMDB() {
+        try {
+            const URL = "mongodb+srv://elimaq25:3LIZABEth@cluster0.cxssa8p.mongodb.net/?retryWrites=true&w=majority"
+            let rta = await mongoose.connect(URL, {
+                useNewUrlParser: true,
+                useUniFiedTopology: true
+            })
+        } catch (e) {
+            logger.error(e)
+        }   
     }
 
-    async newCarrito() {
-        const db = admin.firestore()
-        const query = db.collection('carritos')
-        let time = new Date()
+
+    async newCarrito(dato) {
         try {
-            const doc = query.doc()
-            const carrito = await doc.create({
-                timestamp: time.toString(),
-                productos: []
-            })
+            await this.connectMDB()
+            const carrito = await esquemaCart.create(dato)
+            mongoose.disconnect()
             return carrito
-        }catch (error){
+        } catch (error) {
             logger.error(error)
         }
     }
 
-    async getCarritoById(idC) {
+    async addProducto(idC, idP) {
         try {
-            const db = admin.firestore()
-            const query = db.collection('carritos')
-            const doc = query.doc(String(idC))
-            const encontrado = await doc.get()
-            return encontrado.data()
-    
-        } catch (error){
-            logger.error(error)
-        }
-    }
+            await this.connectMDB()
+            let productoBD = await Productos.getById(idP)
+            const cartObjectId = mongoose.Types.ObjectId(idC);
 
-    async deleteCarritoById(idC) {
-        try {
-            const db = admin.firestore()
-            const query = db.collection('carritos')
-            const doc = query.doc(String(idC))
-            await doc.delete()
-
-    
-        } catch (error){
-            logger.error(error)
-        }
-    }
-
-
-    async deleteProductoDeCarrito(idCarrito, idProducto, idEnCarrito) {
-        try {
-            function random(min, max) {
-                return Math.floor((Math.random() * (max - min + 1)) + min);
-            }
+            await this.connectMDB()
+            const carrito = await esquemaCart.updateOne({_id: cartObjectId}, { $push: { productos: productoBD } })
             
-            let productoAtlas = await Productos.getById(idProducto)
-
-
-            const db = admin.firestore()
-            const query = db.collection('carritos')
-            const doc = query.doc(idCarrito)
-
-            productoAtlas.idC = idEnCarrito
-
-            const item = await doc.update({
-                productos: admin.firestore.FieldValue.arrayRemove(String(productoAtlas))
-            })
-
-        } catch (error){
+            mongoose.disconnect()
+            //return carrito
+        } catch (error) {
             logger.error(error)
         }
     }
-
-    async agregarProducto(idCarrito, idProducto) {
+    async getProductos(idC) {
         try {
-            function random(min, max) {
-                return Math.floor((Math.random() * (max - min + 1)) + min);
-            }
-            
-            let productoAtlas = await Productos.getById(idProducto)
-
-
-            const db = admin.firestore()
-            const query = db.collection('carritos')
-            const doc = query.doc(idCarrito)
-
-            let idrand = random(1,10000)
-
-            productoAtlas.idC = String(idrand)
-
-            const item = await doc.update({
-                productos: admin.firestore.FieldValue.arrayUnion(String(productoAtlas))
-            })
-
-        } catch (error){
+            await this.connectMDB()
+            const cartObjectId = mongoose.Types.ObjectId(idC);
+            const carrito = await esquemaCart.findById(cartObjectId)
+            mongoose.disconnect()
+            return carrito.productos
+        } catch (error) {
             logger.error(error)
         }
     }
